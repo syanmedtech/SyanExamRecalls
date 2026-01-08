@@ -4,7 +4,7 @@ import { PDFDocument } from 'pdf-lib';
 import { ExamConfig, MCQ, VoiceName } from "../types";
 
 // senior-engineer: initialize with key from env
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'FAKE_API_KEY_FOR_DEVELOPMENT' });
 
 const MODEL_NAME = "gemini-3-pro-preview";
 const TTS_MODEL = "gemini-2.5-flash-preview-tts";
@@ -62,7 +62,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
 
 export async function generateAudio(text: string, voiceName: VoiceName = 'Kore'): Promise<void> {
   try {
-    const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY || 'FAKE_API_KEY_FOR_DEVELOPMENT' });
     const response: GenerateContentResponse = await withRetry(() => genAI.models.generateContent({
       model: TTS_MODEL,
       contents: [{ parts: [{ text }] }],
@@ -116,7 +116,7 @@ async function getPdfChunks(file: File, pagesPerChunk: number = 4): Promise<stri
 }
 
 export const generateGeminiStyleQuiz = async (config: ExamConfig): Promise<any> => {
-  const aiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const aiClient = new GoogleGenAI({ apiKey: process.env.API_KEY || 'FAKE_API_KEY_FOR_DEVELOPMENT' });
 
   const isFCPS = config.adminPrompt?.toUpperCase().includes("FCPS STYLE");
 
