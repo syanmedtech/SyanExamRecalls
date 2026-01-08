@@ -1,0 +1,5 @@
+{
+  "name": "SYAN Exam Recalls",
+  "description": "A professional Medical MCQs Exam Generator & Solver using Gemini AI. Upload medical texts or PDFs to generate high-yield, exam-specific questions (USMLE, PLAB, etc.), share with students, and track results.",
+  "requestFramePermissions": []
+}

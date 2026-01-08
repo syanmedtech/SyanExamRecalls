@@ -1,0 +1,49 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Admin catch-all
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'syanmedtechadmen@gmail.com';
+    }
+
+    // Is current user
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isAdmin() || isOwner(uid);
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if isAdmin() || resource.data.userPublish.enabled == true;
+      allow write: if isAdmin();
+      
+      match /questions/{qId} {
+        allow read: if isAdmin() || get(/databases/$(database)/documents/quizzes/$(quizId)).data.userPublish.enabled == true;
+        allow write: if isAdmin();
+      }
+      
+      match /attempts/{aId} {
+        allow read: if isAdmin();
+        allow write: if true; // Public form attempts
+      }
+    }
+
+    match /public_links/{linkId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /userAttempts/{uid}/attempts/{attemptId} {
+      allow read, write: if isAdmin() || isOwner(uid);
+    }
+
+    // Default deny for others
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
