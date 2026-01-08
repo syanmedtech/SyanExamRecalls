@@ -4,6 +4,7 @@ import { validateRecallShare, submitRecall } from '../services/firebaseService';
 import { useDevToolsTermination } from '../hooks/useDevToolsTermination';
 import { useDisableRightClick } from '../hooks/useDisableRightClick';
 import DevToolsTerminationOverlay from './DevToolsTerminationOverlay';
+import { AppUser } from '../types';
 
 const EXAM_RECALL_OPTIONS = [
   "FCPS Medicine", "FCPS Surgery", "FCPS Pediatrics", "FCPS Ortho", "FCPS Eye", "FCPS Gyne",
@@ -11,11 +12,13 @@ const EXAM_RECALL_OPTIONS = [
 ];
 
 interface RecallSubmissionFormProps {
-  shareId: string;
+  shareId?: string | null;
+  user?: AppUser | null;
+  onSuccess?: () => void;
 }
 
-const RecallSubmissionForm: React.FC<RecallSubmissionFormProps> = ({ shareId }) => {
-  const [name, setName] = useState('');
+const RecallSubmissionForm: React.FC<RecallSubmissionFormProps> = ({ shareId, user, onSuccess }) => {
+  const [name, setName] = useState(user?.displayName || '');
   const [examName, setExamName] = useState(EXAM_RECALL_OPTIONS[0]);
   const [timeSlot, setTimeSlot] = useState<'Morning' | 'Evening'>('Morning');
   const [points, setPoints] = useState<string[]>([]);
@@ -32,6 +35,11 @@ const RecallSubmissionForm: React.FC<RecallSubmissionFormProps> = ({ shareId }) 
     area: "RECALLS_FORM",
     recallsShareId: shareId
   });
+
+  // Effect to sync user name if user changes
+  useEffect(() => {
+    if (user?.displayName) setName(user.displayName);
+  }, [user]);
 
   const getWordCount = (str: string) => str.trim().split(/\s+/).filter(w => w.length > 0).length;
 
@@ -74,15 +82,27 @@ const RecallSubmissionForm: React.FC<RecallSubmissionFormProps> = ({ shareId }) 
 
     setIsSubmitting(true);
     try {
+      const recallPoints = points.map(p => ({
+        text: p,
+        createdAt: new Date()
+      }));
+
       await submitRecall({
-        shareId,
-        name,
+        userId: user?.uid || 'guest',
+        userEmail: user?.email || 'guest@anonymous.com',
+        userFullName: name,
+        userWhatsapp: user?.whatsapp || '',
+        shareId: shareId || null,
         examName,
         timeSlot,
-        points,
-        pointsCount: points.length
+        recallPoints,
+        pointsCount: points.length,
+        source: user ? 'user-dashboard' : 'public'
       });
       setSubmitted(true);
+      if (onSuccess) {
+        setTimeout(onSuccess, 2000);
+      }
     } catch (err) {
       alert("Submission failed. Please try again.");
     } finally {
@@ -98,7 +118,15 @@ const RecallSubmissionForm: React.FC<RecallSubmissionFormProps> = ({ shareId }) 
         <div className="text-5xl sm:text-6xl mb-6">✅</div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">Recalls Submitted!</h2>
         <p className="text-slate-500 mb-8 text-sm sm:text-base">Thank you for contributing to the medical community. Your recall points have been recorded successfully.</p>
-        <button onClick={() => window.location.reload()} className="w-full sm:w-auto px-10 py-4 bg-slate-900 text-white rounded-xl font-bold active:scale-95 transition-all">Submit Another</button>
+        <button 
+          onClick={() => {
+            if (onSuccess) onSuccess();
+            else window.location.reload();
+          }} 
+          className="w-full sm:w-auto px-10 py-4 bg-slate-900 text-white rounded-xl font-bold active:scale-95 transition-all"
+        >
+          Return to Dashboard
+        </button>
       </div>
     );
   }

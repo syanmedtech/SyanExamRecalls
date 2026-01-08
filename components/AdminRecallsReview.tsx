@@ -39,20 +39,30 @@ const AdminRecallsReview: React.FC = () => {
   };
 
   const exportCSV = () => {
-    const headers = ["Submission ID", "Name", "Exam Name", "Time Slot", "Points Count", "Points", "Created At"];
-    const rows = submissions.map(s => [
-      s.id,
-      s.name,
-      s.examName,
-      s.timeSlot,
-      s.pointsCount,
-      s.points.join(" | "),
-      s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()).toISOString() : 'N/A'
-    ]);
+    const headers = ["SubmittedAt", "Name", "Email", "WhatsApp", "ExamName", "TimeSlot", "PointIndex", "PointText"];
+    
+    // Flatten points into separate rows
+    const rows: any[] = [];
+    submissions.forEach(s => {
+      const dateStr = s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()).toLocaleString() : 'N/A';
+      (s.recallPoints || []).forEach((p, idx) => {
+        rows.push([
+          `"${dateStr}"`,
+          `"${s.userFullName}"`,
+          `"${s.userEmail}"`,
+          `"${s.userWhatsapp || 'N/A'}"`,
+          `"${s.examName}"`,
+          `"${s.timeSlot}"`,
+          idx + 1,
+          `"${p.text.replace(/"/g, '""')}"`
+        ]);
+      });
+    });
+
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `recalls_export_${filterExam}_${filterTime}.csv`);
+    link.setAttribute("download", `recalls_flattened_export_${filterExam}_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -102,10 +112,11 @@ const AdminRecallsReview: React.FC = () => {
             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-black tracking-widest">
               <tr>
                 <th className="p-4">Sr.</th>
+                <th className="p-4">Submitted At</th>
                 <th className="p-4">Name</th>
+                <th className="p-4">Email / WhatsApp</th>
                 <th className="p-4">Exam / Slot</th>
                 <th className="p-4">Points</th>
-                <th className="p-4">Created</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -113,7 +124,14 @@ const AdminRecallsReview: React.FC = () => {
               {submissions.map((s, i) => (
                 <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                   <td className="p-4 text-slate-400 font-bold">#{i+1}</td>
-                  <td className="p-4 font-bold text-slate-800">{s.name}</td>
+                  <td className="p-4 text-[10px] font-bold text-slate-400 uppercase">
+                    {s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()).toLocaleString() : 'N/A'}
+                  </td>
+                  <td className="p-4 font-bold text-slate-800">{s.userFullName}</td>
+                  <td className="p-4">
+                    <div className="text-slate-800 font-medium">{s.userEmail}</div>
+                    <div className="text-[10px] text-slate-400">{s.userWhatsapp || 'No WhatsApp'}</div>
+                  </td>
                   <td className="p-4">
                     <div className="text-blue-600 font-bold text-xs">{s.examName}</div>
                     <div className="text-[10px] font-bold text-slate-400 uppercase">{s.timeSlot}</div>
@@ -121,10 +139,7 @@ const AdminRecallsReview: React.FC = () => {
                   <td className="p-4">
                      <span className="bg-slate-100 px-2 py-0.5 rounded font-black text-[10px] text-slate-500">{s.pointsCount} Points</span>
                   </td>
-                  <td className="p-4 text-[10px] font-bold text-slate-400 uppercase">
-                    {s.createdAt?.toMillis ? new Date(s.createdAt.toMillis()).toLocaleString() : 'N/A'}
-                  </td>
-                  <td className="p-4 text-right space-x-3">
+                  <td className="p-4 text-right space-x-3 shrink-0">
                     <button onClick={() => setSelectedSubmission(s)} className="text-blue-600 hover:text-blue-800 font-bold text-[10px] uppercase tracking-widest">View</button>
                     <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase tracking-widest">Delete</button>
                   </td>
@@ -142,21 +157,25 @@ const AdminRecallsReview: React.FC = () => {
             <button onClick={() => setSelectedSubmission(null)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">✕</button>
             
             <div className="mb-8 shrink-0">
-               <h3 className="text-2xl font-black text-slate-800 tracking-tight">{selectedSubmission.name}</h3>
-               <div className="flex gap-3 mt-2">
+               <h3 className="text-2xl font-black text-slate-800 tracking-tight">{selectedSubmission.userFullName}</h3>
+               <div className="flex flex-wrap gap-3 mt-2">
                   <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">{selectedSubmission.examName}</span>
                   <span className="bg-slate-50 text-slate-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-100">{selectedSubmission.timeSlot}</span>
+                  <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">{selectedSubmission.source}</span>
+               </div>
+               <div className="mt-4 text-xs font-medium text-slate-500">
+                  Contact: {selectedSubmission.userEmail} | {selectedSubmission.userWhatsapp || 'N/A'}
                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-               {selectedSubmission.points.map((p, idx) => (
+               {(selectedSubmission.recallPoints || []).map((p, idx) => (
                  <div key={idx} className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-2 mb-3">
                        <span className="w-6 h-6 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-black text-slate-400">{idx+1}</span>
                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Recall Point</span>
                     </div>
-                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{p}</p>
+                    <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{p.text}</p>
                  </div>
                ))}
             </div>
@@ -167,7 +186,7 @@ const AdminRecallsReview: React.FC = () => {
                </div>
                <div className="flex gap-2">
                  <button onClick={() => setSelectedSubmission(null)} className="px-6 py-2 text-slate-400 font-bold text-xs uppercase">Close</button>
-                 <button onClick={() => handleDelete(selectedSubmission.id)} className="px-6 py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs border border-red-100 uppercase tracking-widest">Delete Submission</button>
+                 <button onClick={() => handleDelete(selectedSubmission.id)} className="px-6 py-3 bg-red-50 text-red-600 font-bold text-xs border border-red-100 uppercase tracking-widest">Delete Submission</button>
                </div>
             </div>
           </div>

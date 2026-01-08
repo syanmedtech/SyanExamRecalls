@@ -187,16 +187,26 @@ export interface UserDashboardSocial {
   createdAt: any;
 }
 
+export interface RecallPoint {
+  text: string;
+  createdAt: any;
+}
+
 export interface RecallSubmission {
   id: string;
-  shareId: string;
-  name: string;
+  userId: string;
+  userEmail: string;
+  userFullName: string;
+  userWhatsapp?: string;
   examName: string;
   timeSlot: 'Morning' | 'Evening';
-  points: string[];
+  recallPoints: RecallPoint[];
   pointsCount: number;
   createdAt: any;
+  updatedAt: any;
   status: 'submitted';
+  source: 'public' | 'user-dashboard';
+  shareId?: string; // Optional if from public link
 }
 
 export interface RecallShare {

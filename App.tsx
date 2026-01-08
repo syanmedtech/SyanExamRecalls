@@ -29,7 +29,8 @@ type AppState =
   | 'STUDENT_EXAM_GEMINI' 
   | 'RESULT'
   | 'TERMINATED'
-  | 'PUBLIC_RECALLS';
+  | 'PUBLIC_RECALLS'
+  | 'USER_RECALLS_SUBMIT';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -172,55 +173,71 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-slate-50 text-slate-900 pb-10 sm:pb-20">
-        <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
-          <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
-            <div className="flex items-center cursor-pointer" onClick={() => { if(!isPublicFlow) window.location.hash = ""; }}>
-              {brand?.logo?.enabled && brand?.logo?.downloadURL ? (
-                <img src={brand.logo.downloadURL} className="h-8 sm:h-10 w-auto mr-2 sm:mr-3 object-contain" alt="Logo" />
-              ) : (
-                <span className="text-xl sm:text-2xl mr-2">🩺</span>
-              )}
-              <span className="font-bold text-lg sm:text-xl text-slate-800">SYAN<span className="text-teal-600"> ExamRecalls</span></span>
-            </div>
-
-            {user && (
-              <div className="flex items-center space-x-2 sm:space-x-4">
-                {user.role === 'admin' ? (
-                  <>
-                    <button 
-                      onClick={() => setState('ADMIN_INPUT')} 
-                      className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'ADMIN_INPUT' ? 'bg-teal-50 text-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                      Create
-                    </button>
-                    <button 
-                      onClick={() => setState('ADMIN_CREATE')} 
-                      className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'ADMIN_CREATE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                      Gemini
-                    </button>
-                    <button 
-                      onClick={() => setState('HISTORY')} 
-                      className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'HISTORY' ? 'bg-slate-100 text-slate-600' : 'text-slate-500 hover:bg-slate-50'}`}
-                    >
-                      Admin
-                    </button>
-                  </>
+        {state !== 'LANDING' && (
+          <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-4 flex justify-between h-16 items-center">
+              <div className="flex items-center cursor-pointer" onClick={() => { if(!isPublicFlow) window.location.hash = ""; }}>
+                {brand?.logo?.enabled && brand?.logo?.downloadURL ? (
+                  <img src={brand.logo.downloadURL} className="h-8 sm:h-10 w-auto mr-2 sm:mr-3 object-contain" alt="Logo" />
                 ) : (
-                  <button onClick={() => window.location.hash = "#dashboard"} className={`text-[10px] sm:text-xs font-bold px-3 py-2 rounded-xl ${state === 'USER_DASHBOARD' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>My Dashboard</button>
+                  <span className="text-xl sm:text-2xl mr-2">🩺</span>
                 )}
-                <button onClick={handleLogout} className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full hover:bg-red-100 transition-all">Exit</button>
+                <span className="font-bold text-lg sm:text-xl text-slate-800">SYAN<span className="text-teal-600"> ExamRecalls</span></span>
               </div>
-            )}
-          </div>
-        </nav>
 
-        <main className="max-w-7xl mx-auto px-4 py-6">
+              {user && (
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  {user.role === 'admin' ? (
+                    <>
+                      <button 
+                        onClick={() => setState('ADMIN_INPUT')} 
+                        className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'ADMIN_INPUT' ? 'bg-teal-50 text-teal-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                      >
+                        Create
+                      </button>
+                      <button 
+                        onClick={() => setState('ADMIN_CREATE')} 
+                        className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'ADMIN_CREATE' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                      >
+                        Gemini
+                      </button>
+                      <button 
+                        onClick={() => setState('HISTORY')} 
+                        className={`text-[10px] sm:text-xs font-bold px-4 py-2 rounded-full transition-all ${state === 'HISTORY' ? 'bg-slate-100 text-slate-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                      >
+                        Admin
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => window.location.hash = "#dashboard"} className={`text-[10px] sm:text-xs font-bold px-3 py-2 rounded-xl ${state === 'USER_DASHBOARD' ? 'bg-blue-50 text-blue-600' : 'text-slate-500'}`}>My Dashboard</button>
+                  )}
+                  <button onClick={handleLogout} className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full hover:bg-red-100 transition-all">Exit</button>
+                </div>
+              )}
+            </div>
+          </nav>
+        )}
+
+        <main className={`${state === 'LANDING' ? '' : 'max-w-7xl mx-auto px-4 py-6'}`}>
           {state === 'LOADING' && <div className="text-center py-20 animate-pulse text-slate-400 font-bold uppercase tracking-widest">Securing Connection...</div>}
           
           {state === 'LANDING' && <LandingPage />}
           
-          {state === 'USER_DASHBOARD' && user && <UserDashboard user={user} onStartQuiz={handleStartQuiz} onOpenSettings={() => window.location.hash = "#settings"} />}
+          {state === 'USER_DASHBOARD' && user && (
+            <UserDashboard 
+              user={user} 
+              onStartQuiz={handleStartQuiz} 
+              onOpenSettings={() => window.location.hash = "#settings"} 
+              onSubmitRecalls={() => setState('USER_RECALLS_SUBMIT')}
+            />
+          )}
+
+          {state === 'USER_RECALLS_SUBMIT' && user && (
+            <RecallSubmissionForm 
+              user={user} 
+              onSuccess={() => setState('USER_DASHBOARD')} 
+            />
+          )}
 
           {state === 'USER_SETTINGS' && user && <UserSettingsPage user={user} onBack={() => window.location.hash = "#dashboard"} />}
 

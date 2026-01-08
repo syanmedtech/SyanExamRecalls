@@ -11,9 +11,10 @@ interface UserDashboardProps {
   user: AppUser;
   onStartQuiz: (quiz: ExamData) => void;
   onOpenSettings: () => void;
+  onSubmitRecalls: () => void;
 }
 
-const UserDashboard: React.FC<UserDashboardProps> = ({ user, onStartQuiz, onOpenSettings }) => {
+const UserDashboard: React.FC<UserDashboardProps> = ({ user, onStartQuiz, onOpenSettings, onSubmitRecalls }) => {
   const [quizzes, setQuizzes] = useState<ExamData[]>([]);
   const [banner, setBanner] = useState<UserDashboardBanner | null>(null);
   const [social, setSocial] = useState<UserDashboardSocial | null>(null);
@@ -94,8 +95,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, onStartQuiz, onOpen
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      {/* Summary Cards Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Card 1: Session */}
         <div className="bg-blue-600 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-blue-100 flex flex-col justify-between h-44 sm:h-48 transform transition-hover hover:-translate-y-1">
            <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Session Status</div>
            <div className="text-2xl sm:text-3xl font-black">Active Candidate</div>
@@ -103,10 +105,28 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user, onStartQuiz, onOpen
              {user.email}
            </div>
         </div>
+
+        {/* Card 2: Banks */}
         <div className="bg-slate-900 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-slate-200 flex flex-col justify-between h-44 sm:h-48 transform transition-hover hover:-translate-y-1">
            <div className="text-[10px] font-black uppercase tracking-widest opacity-40">Available Banks</div>
            <div className="text-2xl sm:text-3xl font-black">{quizzes.length} Resources</div>
            <p className="text-[10px] sm:text-xs font-bold text-slate-400">High-yield clinical scenarios prepared by specialists.</p>
+        </div>
+
+        {/* Card 3: Submit Recalls (New Feature) */}
+        <div className="bg-emerald-600 rounded-[2rem] p-6 sm:p-8 text-white shadow-xl shadow-emerald-100 flex flex-col justify-between h-44 sm:h-48 transform transition-hover hover:-translate-y-1">
+           <div className="flex justify-between items-start">
+              <div className="text-[10px] font-black uppercase tracking-widest opacity-60">Submit Recalls</div>
+              <span className="bg-emerald-500/30 text-white border border-white/20 px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest">OPEN</span>
+           </div>
+           <div className="text-2xl sm:text-3xl font-black">Clinical Recalls</div>
+           <p className="text-[10px] sm:text-xs font-bold text-emerald-100">Help juniors by sharing your exam recall points.</p>
+           <button 
+             onClick={onSubmitRecalls}
+             className="bg-white text-emerald-600 font-black text-[10px] uppercase tracking-widest px-6 py-2.5 rounded-xl self-start hover:bg-emerald-50 transition-colors shadow-lg active:scale-95"
+           >
+             Submit Now
+           </button>
         </div>
       </div>
 

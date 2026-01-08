@@ -235,15 +235,22 @@ export const updateUserProfile = async (uid: string, data: { displayName?: strin
 
 // --- LOGIN USERS MANAGEMENT ---
 export const getLoginUsers = async (): Promise<AppUser[]> => {
-  const q = query(collection(db, "users"), where("deletedAt", "==", null), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "users"));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ ...d.data(), uid: d.id } as AppUser));
+  return snap.docs
+    .map(d => ({ ...d.data(), uid: d.id } as AppUser))
+    .filter(u => !u.deletedAt)
+    .sort((a, b) => getTimestampMs(b.createdAt) - getTimestampMs(a.createdAt));
 };
 
 export const subscribeToLoginUsers = (callback: (users: AppUser[]) => void) => {
-  const q = query(collection(db, "users"), where("deletedAt", "==", null), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "users"));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ ...d.data(), uid: d.id } as AppUser)));
+    const users = snap.docs
+      .map(d => ({ ...d.data(), uid: d.id } as AppUser))
+      .filter(u => !u.deletedAt)
+      .sort((a, b) => getTimestampMs(b.createdAt) - getTimestampMs(a.createdAt));
+    callback(users);
   });
 };
 
@@ -553,7 +560,7 @@ export const submitGeminiAttempt = async (attempt: StudentAttempt) => {
   const examRef = doc(db, "quizzes", attempt.examId);
   const batch = writeBatch(db);
   batch.set(attemptRef, cleanObject({ ...attempt, submittedAt: serverTimestamp(), status: attempt.status || 'submitted' }));
-  if (attempt.status !== 'quit_discarded') batch.update(examRef, { "stats.totalAttempts": increment(1), updatedAt: serverTimestamp() });
+  if (attempt.status !== 'quit_discarded') batch.update(examRef, { "stats.totalQuestions": increment(1), updatedAt: serverTimestamp() });
   await batch.commit();
 };
 
@@ -590,20 +597,29 @@ export const validateRecallShare = async (shareId: string): Promise<RecallShare 
 };
 
 export const submitRecall = async (submission: any): Promise<void> => {
-  await setDoc(doc(collection(db, "recall_submissions")), { ...cleanObject(submission), status: 'submitted', createdAt: serverTimestamp() });
+  // standardized collection name
+  const docRef = doc(collection(db, "recallSubmissions"));
+  const payload = {
+    ...submission,
+    id: docRef.id,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    status: 'submitted'
+  };
+  await setDoc(docRef, cleanObject(payload));
 };
 
 export const getRecallSubmissions = async (examName?: string, timeSlot?: string): Promise<RecallSubmission[]> => {
-  let q = query(collection(db, "recall_submissions"));
+  let q = query(collection(db, "recallSubmissions"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   let subs = snap.docs.map(d => ({ ...d.data(), id: d.id } as RecallSubmission));
   if (examName && examName !== 'all') subs = subs.filter(s => s.examName === examName);
   if (timeSlot && timeSlot !== 'all') subs = subs.filter(s => s.timeSlot === timeSlot);
-  return subs.sort((a, b) => getTimestampMs(b.createdAt) - getTimestampMs(a.createdAt));
+  return subs;
 };
 
 export const deleteRecallSubmission = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, "recall_submissions", id));
+  await deleteDoc(doc(db, "recallSubmissions", id));
 };
 
 export const getQuizQuestions = async (quizId: string): Promise<MCQ[]> => {
