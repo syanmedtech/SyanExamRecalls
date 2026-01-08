@@ -17,10 +17,11 @@ interface UseDevToolsTerminationProps {
  * Prevents DevTools auto-termination during development and AI Studio Preview.
  */
 function isDeployedApp(): boolean {
+  if (typeof window === "undefined") return false;
   try {
     const host = window.location.hostname.toLowerCase();
-    const isRunApp = host.endsWith(".run.app");
-    // Add custom domain if applicable: const isCustomDomain = host === "syan-recalls.com";
+    const isRunApp = host.endsWith(".run.app") || host.endsWith(".vercel.app");
+    // Add custom domain if applicable
     const isCustomDomain = false; 
 
     // Preview/Local Detection
@@ -50,6 +51,9 @@ export function useDevToolsTermination({
   const mountTime = useRef(Date.now());
 
   useEffect(() => {
+    // SSR guard
+    if (typeof window === "undefined") return;
+
     // Gate: ONLY run termination logic in the deployed production environment
     if (!enabled || isTerminated || !isDeployedApp()) {
       if (!isDeployedApp() && enabled) {
@@ -93,20 +97,19 @@ export function useDevToolsTermination({
 
       // Signal 3: Debugger timing heuristic
       const t0 = performance.now();
-      // Use a wrapped evaluation to detect pausing without breaking UI flow
       try {
         const check = new Function('debugger');
         check();
       } catch (e) {}
       const t1 = performance.now();
-      if (t1 - t0 > 150) { // If paused for more than 150ms
+      if (t1 - t0 > 150) { 
         score++;
       }
 
-      // Confirmation Logic: Need at least 2 signals or high confidence
+      // Confirmation Logic
       if (score >= 2) {
         consecutiveHits.current++;
-      } else if (score === 1 && widthDiff > 250) { // Highly suspicious dimension
+      } else if (score === 1 && widthDiff > 250) { 
         consecutiveHits.current++;
       } else {
         consecutiveHits.current = 0;
@@ -123,7 +126,6 @@ export function useDevToolsTermination({
 
       if (!loggedRef.current) {
         loggedRef.current = true;
-        // Non-blocking log
         logSecurityEvent({
           type: "DEVTOOLS_DETECTED",
           area,
@@ -136,7 +138,6 @@ export function useDevToolsTermination({
         });
       }
 
-      // 3 second redirect after termination
       setTimeout(() => {
         window.location.replace("https://www.google.com");
       }, 3000);

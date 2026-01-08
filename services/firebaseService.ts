@@ -40,18 +40,22 @@ import {
   SocialCard
 } from "../types";
 
+// Refactored to use environment variables for Vercel deployment safety
 const firebaseConfig = {
-  apiKey: "AIzaSyC8PgbMGerZbEm72iLXN0ZVV5I3hZTTuW4",
-  authDomain: "syan-revision-mcqs.firebaseapp.com",
-  projectId: "syan-revision-mcqs",
-  storageBucket: "syan-revision-mcqs.firebasestorage.app",
-  messagingSenderId: "125450072326",
-  appId: "1:125450072326:web:4ef99ff3e2cb79cbc36e87",
-  measurementId: "G-7CY2RFG4F3"
+  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyC8PgbMGerZbEm72iLXN0ZVV5I3hZTTuW4",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "syan-revision-mcqs.firebaseapp.com",
+  projectId: process.env.FIREBASE_PROJECT_ID || "syan-revision-mcqs",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "syan-revision-mcqs.firebasestorage.app",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "125450072326",
+  appId: process.env.FIREBASE_APP_ID || "1:125450072326:web:4ef99ff3e2cb79cbc36e87",
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || "G-7CY2RFG4F3"
 };
 
+// Singleton initialization pattern with SSR guard
 const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
-export const analytics = firebase.analytics();
+
+// SSR Safety for browser-only services
+export const analytics = typeof window !== "undefined" ? firebase.analytics() : null;
 export const db = getFirestore(app);
 export const auth = firebase.auth();
 export const storage = getStorage(app);
@@ -136,7 +140,6 @@ async function commitChunkedBatch(items: {ref: any, data: any}[]) {
 
 // --- CANONICAL LOADER ---
 export const loadQuizQuestions = async (quizId: string): Promise<MCQ[]> => {
-  console.log(`[QUIZ_LOADER] Initiating load for quiz: ${quizId}`);
   try {
     const subSnap = await getDocs(query(collection(db, "quizzes", quizId, "questions"), orderBy("order")));
     if (!subSnap.empty) return subSnap.docs.map(d => ({ ...d.data(), id: d.id } as MCQ));
@@ -161,7 +164,8 @@ export const repairQuizCount = async (quizId: string, actualCount: number) => {
 
 // --- USER MANAGEMENT ---
 export const isAdminUser = (email: string | null | undefined): boolean => {
-  return email?.toLowerCase() === "syanmedtechadmen@gmail.com";
+  const adminEmail = process.env.ADMIN_EMAIL || "syanmedtechadmen@gmail.com";
+  return email?.toLowerCase() === adminEmail.toLowerCase();
 };
 
 export const syncUserToFirestore = async (user: firebase.User, displayName?: string, whatsapp?: string): Promise<AppUser> => {
@@ -268,7 +272,7 @@ export const softDeleteLoginUser = async (uid: string) => {
   const userRef = doc(db, "users", uid);
   await updateDoc(userRef, {
     deletedAt: serverTimestamp(),
-    isBanned: true, // Also ban them to block existing sessions
+    isBanned: true,
     updatedAt: serverTimestamp()
   });
 };
@@ -597,7 +601,6 @@ export const validateRecallShare = async (shareId: string): Promise<RecallShare 
 };
 
 export const submitRecall = async (submission: any): Promise<void> => {
-  // standardized collection name
   const docRef = doc(collection(db, "recallSubmissions"));
   const payload = {
     ...submission,
@@ -657,7 +660,7 @@ export const republishExam = async (quizId: string, minutes: number) => {
     "link.expiresAt": expiresAt,
     "link.isActive": true,
     "link.revokedAt": null,
-    lastUpdateType: null, // Reset indicator on manual republish
+    lastUpdateType: null,
     updatedAt: serverTimestamp()
   });
 };
